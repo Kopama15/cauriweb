@@ -10,18 +10,19 @@ export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError(null);
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
-    } catch (err: any) {
-      setError('Email ou mot de passe invalide.');
+    } catch (err) {
+      setError("Email ou mot de passe invalide.");
     } finally {
       setLoading(false);
     }
@@ -31,7 +32,9 @@ export default function SignInPage() {
     <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
       <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md">
         <h1 className="text-2xl font-bold mb-4 text-center">Se connecter à Cauri</h1>
+
         {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -73,7 +76,7 @@ export default function SignInPage() {
         <p className="text-xs text-gray-500 mt-4">
           En continuant, vous acceptez les{' '}
           <Link href="/conditions-of-use" className="text-blue-600 hover:underline">
-            Conditions d'utilisation
+            Conditions d&apos;utilisation
           </Link>{' '}
           et la{' '}
           <Link href="/privacy-notice" className="text-blue-600 hover:underline">

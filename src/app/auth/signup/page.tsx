@@ -2,107 +2,118 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 const SignUpPage = () => {
   const router = useRouter();
-
-  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignUp = async () => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas.");
+      setError('Passwords do not match.');
       return;
     }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, { displayName: name });
-        router.push('/');
+      await updateProfile(userCredential.user, { displayName: name });
+      router.push('/');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Signup failed.');
       }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la création du compte.');
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 px-4">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-2">Créer un compte</h1>
-        <p className="text-sm mb-4">
-          Vous avez déjà un compte ?{' '}
-          <a href="/auth/signin" className="text-blue-600 hover:underline">
-            Se connecter
-          </a>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 rounded shadow-md w-full max-w-md space-y-4"
+      >
+        <h2 className="text-2xl font-bold">Create account</h2>
+        <p>
+          Already a customer?{' '}
+          <Link href="/auth/signin" className="text-blue-600 hover:underline">
+            Sign in
+          </Link>
         </p>
-
-        <label className="block text-sm font-semibold mt-4">Numéro de téléphone ou e-mail</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 rounded p-2 mt-1"
-        />
-
-        <label className="block text-sm font-semibold mt-4">Votre nom</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full border border-gray-300 rounded p-2 mt-1"
-        />
-
-        <label className="block text-sm font-semibold mt-4">Mot de passe (au moins 6 caractères)</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-gray-300 rounded p-2 mt-1"
-        />
-        <p className="text-xs text-gray-600 mt-1">Les mots de passe doivent comporter au moins 6 caractères.</p>
-
-        <label className="block text-sm font-semibold mt-4">Confirmez le mot de passe</label>
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full border border-gray-300 rounded p-2 mt-1"
-        />
-
-        {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
-
-        <button
-          onClick={handleSignUp}
-          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 rounded mt-6"
-        >
-          Continuer
-        </button>
-
-        <div className="mt-6 border-t pt-4">
-          <p className="text-sm font-semibold">Vous achetez pour le travail ?</p>
-          <a href="#" className="text-blue-600 text-sm hover:underline">
-            Créer un compte professionnel gratuit
-          </a>
+        <div>
+          <label className="block font-medium mb-1">Enter mobile number or email</label>
+          <input
+            type="email"
+            className="w-full border border-gray-300 px-3 py-2 rounded"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
-
-        <p className="text-xs text-gray-500 mt-4">
-          En créant un compte, vous acceptez les{' '}
-          <a href="/conditions-of-use" className="text-blue-600 hover:underline">
-            Conditions d'utilisation
-          </a>{' '}
-          et la{' '}
-          <a href="/privacy-notice" className="text-blue-600 hover:underline">
-            Notice de confidentialité
-          </a>
-          .
+        <div>
+          <label className="block font-medium mb-1">Your name</label>
+          <input
+            type="text"
+            className="w-full border border-gray-300 px-3 py-2 rounded"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="block font-medium mb-1">Password (at least 6 characters)</label>
+          <input
+            type="password"
+            className="w-full border border-gray-300 px-3 py-2 rounded"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <p className="text-sm text-gray-500 mt-1">
+            Passwords must be at least 6 characters.
+          </p>
+        </div>
+        <div>
+          <label className="block font-medium mb-1">Re-enter password</label>
+          <input
+            type="password"
+            className="w-full border border-gray-300 px-3 py-2 rounded"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button
+          type="submit"
+          className="bg-yellow-400 text-black w-full py-2 rounded hover:bg-yellow-300"
+        >
+          Continue
+        </button>
+        <hr className="my-4" />
+        <p>
+          Buying for work?{' '}
+          <Link href="/business-account" className="text-blue-600 hover:underline">
+            Create a free business account
+          </Link>
         </p>
-      </div>
+        <p className="text-xs text-gray-600">
+          By creating an account, you agree to {'Cauri\'s'}{' '}
+          <Link href="/conditions-of-use" className="text-blue-600 hover:underline">
+            Conditions of Use
+          </Link>{' '}and{' '}
+          <Link href="/privacy-notice" className="text-blue-600 hover:underline">
+            Privacy Notice
+          </Link>.
+        </p>
+      </form>
     </div>
   );
 };
