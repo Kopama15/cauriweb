@@ -1,5 +1,9 @@
 // src/lib/otp.ts
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, getAuth } from 'firebase/auth';
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult,
+} from 'firebase/auth';
 import { auth } from './firebase';
 
 declare global {
@@ -9,20 +13,29 @@ declare global {
   }
 }
 
+/**
+ * Initializes the invisible reCAPTCHA verifier if it hasn't been initialized yet.
+ */
 export const setupRecaptcha = (containerId = 'recaptcha-container') => {
   if (typeof window === 'undefined') return;
 
-  const resolvedAuth = getAuth(); // This avoids "appVerificationDisabledForTesting"
-
   if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(containerId, {
-      size: 'invisible',
-    }, resolvedAuth);
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      auth, // ✅ FIXED: pass auth as first argument
+      containerId, // ✅ FIXED: containerId as second argument
+      {
+        size: 'invisible',
+      }
+    );
   }
 };
 
+/**
+ * Sends an OTP to the given phone number using Firebase Phone Auth.
+ * Stores the confirmationResult in window for later verification.
+ */
 export const sendOtp = async (phoneNumber: string) => {
-  setupRecaptcha(); // this ensures recaptchaVerifier exists
+  setupRecaptcha(); // ensure verifier is initialized
   const appVerifier = window.recaptchaVerifier!;
   window.confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
 };

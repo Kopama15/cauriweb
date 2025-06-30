@@ -1,7 +1,20 @@
-// src/app/api/search/route.ts
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocsFromServer } from 'firebase/firestore';
 import { remove as removeAccents } from 'diacritics';
+
+interface Product {
+  id: string;
+  title: string;
+  description: string;
+  tags?: string[];
+  category?: string;
+  color?: string;
+  price: number;
+  discount?: number;
+  rating?: number;
+  vendorVerified?: boolean;
+  advertised?: boolean;
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -19,9 +32,10 @@ export async function GET(req: Request) {
 
   try {
     const productsRef = collection(db, 'products');
-    const snapshot = await getDocs(productsRef);
-    let allMatches = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+    const snapshot = await getDocsFromServer(productsRef);
+
+    const allMatches: Product[] = snapshot.docs
+      .map(doc => ({ id: doc.id, ...(doc.data() as Omit<Product, 'id'>) }))
       .filter(product => {
         const title = removeAccents(product.title?.toLowerCase() || '');
         const description = removeAccents(product.description?.toLowerCase() || '');
@@ -33,7 +47,7 @@ export async function GET(req: Request) {
         const priceMatch = product.price >= minPrice && product.price <= maxPrice;
         const categoryMatch = categoryFilter ? category === categoryFilter : true;
         const colorMatch = colorFilter ? color === colorFilter : true;
-        const discountMatch = withDiscount ? product.discount > 0 : true;
+        const discountMatch = withDiscount ? product.discount && product.discount > 0 : true;
 
         return textMatch && priceMatch && categoryMatch && colorMatch && discountMatch;
       });

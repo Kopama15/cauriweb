@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 export default function SignInPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export default function SignInPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
-    } catch (err) {
+    } catch {
       setError("Email ou mot de passe invalide.");
     } finally {
       setLoading(false);
@@ -29,63 +30,82 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-      <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">Se connecter à Cauri</h1>
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <div className="w-full max-w-md border shadow-md rounded-md p-6 bg-white">
+        <h2 className="text-lg font-semibold mb-4 text-center">Connexion</h2>
 
-        {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
+        {/* Tabs */}
+        <div className="flex justify-between border border-black rounded-md overflow-hidden mb-4">
+          <button
+            onClick={() => setMode('email')}
+            className={`w-1/2 py-2 text-sm font-semibold ${
+              mode === 'email' ? 'bg-black text-white' : 'bg-white'
+            }`}
+          >
+            Email
+          </button>
+          <button
+            onClick={() => setMode('phone')}
+            className={`w-1/2 py-2 text-sm font-semibold ${
+              mode === 'phone' ? 'bg-black text-white' : 'bg-white'
+            }`}
+          >
+            Téléphone
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Adresse e-mail
-            </label>
+        {/* Error */}
+        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
+        {/* Email login form */}
+        {mode === 'email' && (
+          <form onSubmit={handleSubmit} className="space-y-4">
             <input
               type="email"
-              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2 text-sm focus:ring focus:ring-yellow-300"
+              placeholder="Adresse e-mail"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none"
             />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Mot de passe
-            </label>
             <input
               type="password"
-              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2 text-sm focus:ring focus:ring-yellow-300"
+              placeholder="Mot de passe"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none"
             />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded"
+            >
+              {loading ? 'Connexion...' : 'Se connecter'}
+            </button>
+          </form>
+        )}
+
+        {/* Phone tab placeholder */}
+        {mode === 'phone' && (
+          <div className="text-center text-sm text-gray-500 mt-4">
+            La connexion par téléphone arrive bientôt...
           </div>
+        )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded focus:outline-none focus:ring"
-          >
-            {loading ? 'Connexion...' : 'Se connecter'}
-          </button>
-        </form>
-
-        <p className="text-xs text-gray-500 mt-4">
-          En continuant, vous acceptez les{' '}
+        <p className="text-xs text-gray-500 mt-6 text-center">
+          En continuant, vous acceptez nos{' '}
           <Link href="/conditions-of-use" className="text-blue-600 hover:underline">
             Conditions d&apos;utilisation
           </Link>{' '}
-          et la{' '}
+          et{' '}
           <Link href="/privacy-notice" className="text-blue-600 hover:underline">
             Notice de confidentialité
           </Link>
           .
         </p>
 
-        <hr className="my-6" />
+        <hr className="my-4" />
 
         <p className="text-sm text-center">
           Nouveau sur Cauri ?{' '}

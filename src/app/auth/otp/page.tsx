@@ -3,14 +3,29 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import countries from '@/lib/countries';
 import { sendOtp } from '@/lib/otp';
-import { parsePhoneNumberFromString, AsYouType } from 'libphonenumber-js';
+import {
+  parsePhoneNumberFromString,
+  AsYouType,
+  CountryCode,
+} from 'libphonenumber-js';
+
+const dialCodeMap: Partial<Record<CountryCode, string>> = {
+  CI: '+225',
+  FR: '+33',
+  US: '+1',
+  CA: '+1',
+  GB: '+44',
+  DE: '+49',
+  SN: '+221',
+  TG: '+228',
+  BJ: '+229',
+};
 
 export default function OtpPage() {
   const router = useRouter();
   const [countryCode, setCountryCode] = useState('+225');
-  const [countryIso2, setCountryIso2] = useState('CI');
+  const [countryIso2, setCountryIso2] = useState<CountryCode>('CI');
   const [rawPhone, setRawPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -19,12 +34,14 @@ export default function OtpPage() {
       try {
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
-        const found = countries.find(c => c.iso2 === data.country_code);
-        if (found) {
-          setCountryCode(found.code);
-          setCountryIso2(found.iso2);
+        if (data.country_code) {
+          const iso2 = data.country_code as CountryCode;
+          setCountryIso2(iso2);
+          setCountryCode(dialCodeMap[iso2] || '+225');
         }
-      } catch {}
+      } catch {
+        // fallback already set to CI / +225
+      }
     };
     fetchCountry();
   }, []);
@@ -32,17 +49,23 @@ export default function OtpPage() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
     try {
       const phoneNumber = parsePhoneNumberFromString(rawPhone, countryIso2);
       if (!phoneNumber || !phoneNumber.isValid()) {
         setError('Numéro invalide');
         return;
       }
+
       const e164 = phoneNumber.number;
       await sendOtp(e164);
       router.push(`/auth/otp/verify?phone=${encodeURIComponent(e164)}`);
-    } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Une erreur est survenue');
+      }
     }
   };
 
@@ -50,12 +73,6 @@ export default function OtpPage() {
     const formatter = new AsYouType(countryIso2);
     const formatted = formatter.input(input);
     setRawPhone(formatted);
-  };
-
-  const handleCountryChange = (newCode: string, iso2: string) => {
-    setCountryCode(newCode);
-    setCountryIso2(iso2);
-    setRawPhone('');
   };
 
   return (
@@ -79,25 +96,11 @@ export default function OtpPage() {
                 alt="flag"
                 className="w-6 h-4 object-cover border border-gray-300 rounded-sm"
               />
-              <select
-                value={countryCode}
-                onChange={(e) => {
-                  const selected = countries.find(c => c.code === e.target.value);
-                  if (selected) handleCountryChange(selected.code, selected.iso2);
-                }}
-                className="border border-gray-300 rounded px-2 py-2 bg-white text-sm w-48"
-              >
-                {countries.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
               <input
                 type="tel"
                 value={rawPhone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
-                placeholder="Numéro sans indicatif"
+                placeholder={`Numéro sans indicatif (${countryCode})`}
                 required
                 className="flex-grow border border-gray-300 rounded p-2 text-sm"
               />
@@ -117,7 +120,7 @@ export default function OtpPage() {
         <p className="text-xs text-gray-500 mt-4">
           En créant un compte, vous acceptez les{' '}
           <Link href="/conditions-of-use" className="text-blue-600 hover:underline">
-            Conditions d'utilisation
+            Conditions d&apos;utilisation
           </Link>{' '}
           et la{' '}
           <Link href="/privacy-notice" className="text-blue-600 hover:underline">
