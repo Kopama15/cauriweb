@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { FaSearch, FaShoppingCart } from 'react-icons/fa';
 import { MdLocationOn } from 'react-icons/md';
 import { IoMdArrowDropdown } from 'react-icons/io';
-import { GiHamburgerMenu } from 'react-icons/gi';
 import { onSnapshot, doc, collection } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
@@ -24,6 +23,9 @@ const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [languageCode, setLanguageCode] = useState('fr');
   const [flagUrl, setFlagUrl] = useState('https://flagcdn.com/fr.svg');
+  const [announcements, setAnnouncements] = useState<string[]>([]);
+
+  const emojis = ['🔥', '🚀', '🎉', '💡', '🛍️', '📢', '✨', '🎯', '💬'];
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -109,6 +111,27 @@ const Navbar = () => {
     return () => unsubscribeAuth();
   }, []);
 
+  useEffect(() => {
+    const fetchAnnouncements = () => {
+      const stored = localStorage.getItem('announcements');
+      if (stored) {
+        const parsed = JSON.parse(stored) as { text: string; scheduledAt?: string }[];
+        const now = new Date();
+        const active = parsed
+          .filter((a) => !a.scheduledAt || new Date(a.scheduledAt) <= now)
+          .map((a) => a.text);
+        setAnnouncements(active);
+      }
+    };
+
+    fetchAnnouncements();
+
+    const handleStorage = () => fetchAnnouncements();
+    window.addEventListener('storage', handleStorage);
+
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   const handleLogout = async () => {
     await signOut(auth);
     setIsLoggedIn(false);
@@ -128,7 +151,7 @@ const Navbar = () => {
   return (
     <div className="w-full bg-[#131921] text-white text-sm font-medium">
       <div className="flex items-center px-4 py-2 space-x-4">
-        <div className="flex items-center gap-1 cursor-pointer" onClick={() => router.push('/')}> 
+        <div className="flex items-center gap-1 cursor-pointer" onClick={() => router.push('/')}>
           <Image src="/cauri-icon.png" alt="Logo Cauri" width={24} height={24} />
           <h1 className="text-2xl font-bold text-blue-500">Cauri</h1>
         </div>
@@ -231,24 +254,29 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className="bg-[#232f3e] px-4 py-2 flex items-center space-x-6 text-white text-sm overflow-x-auto">
-        <div className="flex items-center space-x-1 cursor-pointer">
-          <GiHamburgerMenu />
-          <span>Catégories</span>
+      {announcements.length > 0 && (
+        <div dir="rtl" className="bg-[#232f3e] py-2 text-white text-sm overflow-hidden whitespace-nowrap">
+          <div className="animate-marquee inline-block px-4">
+            {announcements.map((msg, i) => (
+              <span key={i} className="mx-6">{`${emojis[i % emojis.length]} ${msg}`}</span>
+            ))}
+          </div>
         </div>
-        <button className="bg-[#f3a847] text-black font-semibold px-2 py-0.5 rounded">Rufus</button>
-        <button className="border border-white rounded px-2 py-0.5">Rejoindre Prime</button>
-        <span className="cursor-pointer hover:underline">Promos du jour</span>
-        <span className="cursor-pointer hover:underline">Livraison aujourd'hui</span>
-        <span className="cursor-pointer hover:underline">Soins médicaux</span>
-        <span className="cursor-pointer hover:underline">Saks</span>
-        <span className="cursor-pointer hover:underline">Historique d'achats</span>
-        <span className="cursor-pointer hover:underline">Animalerie</span>
-        <span className="cursor-pointer hover:underline">Maison &amp; Santé</span>
-        <span className="text-[#f3a847] font-semibold ml-auto whitespace-nowrap">
-          Prime Day : 8–11 Juillet
-        </span>
-      </div>
+      )}
+
+      <style jsx>{`
+        @keyframes marquee {
+          0% {
+            transform: translateX(100%);
+          }
+          100% {
+            transform: translateX(-100%);
+          }
+        }
+        .animate-marquee {
+          animation: marquee 20s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };
